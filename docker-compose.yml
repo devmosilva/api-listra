@@ -1,0 +1,68 @@
+version: "3.7"
+
+services:
+    # image project
+    app:
+        container_name: api-listra
+        build:
+            context: .
+            dockerfile: Dockerfile
+        restart: unless-stopped
+        working_dir: /var/www/
+        volumes:
+            - ./:/var/www
+        networks:
+            - listra-networks
+
+    # nginx
+    nginx:
+        image: nginx:alpine
+        container_name: nginx
+        restart: unless-stopped
+        ports: 
+            - "8484:80"
+        volumes: 
+            - ./:/var/www
+            - ./docker/nginx/:/etc/nginx/conf.d/
+        networks: 
+            - listra-networks
+
+    # db mysql
+    mysql:
+        image: mysql:5.7.22
+        container_name: database-mysql-5.7
+        restart: unless-stopped
+        environment:
+            MYSQL_DATABASE: ${DB_DATABASE}
+            MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+            MYSQL_PASSWORD: ${DB_PASSWORD}
+            MYSQL_USER: ${DB_USERNAME}
+        volumes:
+            - ./.docker/mysql/dbdata:/var/lib/mysql
+        ports:
+            - "3407:3306"
+        networks:
+            - listra-networks
+
+    # # queue
+    # queue:
+    #     image: especializati/laravel9-app
+    #     restart: unless-stopped
+    #     command: "php artisan queue:work"
+    #     volumes:
+    #         - ./:/var/www
+    #     depends_on:
+    #         - redis
+    #         - app
+    #     networks:
+    #         - listra-networks
+
+    # # redis
+    # redis:
+    #     image: redis:latest
+    #     networks:
+    #         - listra-networks
+
+networks:
+    listra-networks:
+        driver: bridge
