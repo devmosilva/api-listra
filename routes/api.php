@@ -14,22 +14,11 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
-});
-
-
 
 Route::group([
-    'prefix' => '/todo',
-    'as' => 'todo.',
+    'prefix' => '/vehicle',
+    'as' => 'vehicle.',
 ], function () {
-    Route::post('/create', 'TodoController@create');
-    Route::get('/index', 'TodoController@index');
-    Route::get('/teste',  function (Request $request) {
-        return response()->json('é', 200, [], JSON_UNESCAPED_UNICODE);
-    });
-    Route::put('/update/{id}', 'TodoController@update');
-    Route::delete('/delete/{id}', 'TodoController@delete');
-    Route::put('/updateStatus/{id}', 'TodoController@updateStatus');
+    Route::post('/store', 'App\Http\Controllers\VehicleController@store');
+    Route::get('/index', 'App\Http\Controllers\VehicleController@index');
 });
