@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Vehicle;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 
@@ -17,7 +19,10 @@ class VehicleController extends Controller
      */
     public function index()
     {
-        $vehicles = Vehicle::all();
+
+        $vehicles = Cache::remember('vehicleList', now()->addMinutes(20), function () {
+            return Vehicle::all();
+        });
 
         return response()->json([
             'vehicles' => $vehicles
@@ -34,69 +39,48 @@ class VehicleController extends Controller
     public function store(Request $request)
     {
 
-        // dd($request->validate([
-        //     'foto' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-        //     'city' => 'required|string',
-        //     'brand' => 'required|string',
-        //     'model' => 'required|string',
-        //     'description' => 'required|string',
-        //     'year' => 'required|integer',
-        //     'mileage' => 'required|integer',
-        //     'transmission_type' => 'required|string',
-        //     'store_phone' => 'required|string',
-        //     'price' => 'required|numeric',
-        // ]));
-        
-        $vehicle = new Vehicle([
-            'id' => Str::uuid(),
-            'photo' => $request->input('photo'),
-            'city' => $request->input('city'),
-            'make' => $request->input('make'),
-            'model' => $request->input('model'),
-            'description' => $request->input('description'),
-            'year' => $request->input('year'),
-            'mileage' => $request->input('mileage'),
-            'transmission_type' => $request->input('transmission_type'),
-            'store_phone' => $request->input('store_phone'),
-            'price' => $request->input('price'),
+        $validator = Validator::make($request->all(), [
+            'photo' => 'required|string',
+            'city' => 'required|string',
+            'make' => 'required|string',
+            'model' => 'required|string',
+            'description' => 'required|string',
+            'year' => 'required|integer',
+            'mileage' => 'required|integer',
+            'transmission_type' => 'required|string',
+            'store_phone' => 'required|string',
+            'price' => 'required|numeric',
         ]);
     
-        $vehicle->save();
+        if($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 400);
+        }
+
+        try {
+            $vehicle = new Vehicle([
+                'id' => Str::uuid(),
+                'photo' => $request->input('photo'),
+                'city' => $request->input('city'),
+                'make' => $request->input('make'),
+                'model' => $request->input('model'),
+                'description' => $request->input('description'),
+                'year' => $request->input('year'),
+                'mileage' => $request->input('mileage'),
+                'transmission_type' => $request->input('transmission_type'),
+                'store_phone' => $request->input('store_phone'),
+                'price' => $request->input('price'),
+            ]);
+        
+            $vehicle->save();
     
-        return response()->json(['message' => 'Vehicle created successfully!', 'vehicle' => $vehicle], 201);
-    }
+            Cache::forget('vehicleList');
 
-    /**
-     * Display the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function show($id)
-    {
-        //
-    }
+            return response()->json(['message' => 'Vehicle created successfully!', 'vehicle' => $vehicle], 201);
+        
+        } catch (\Throwable $th) {
 
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function update(Request $request, $id)
-    {
-        //
-    }
+            return response()->json(['error' => 'Failed to create vehicle. Please try again.'], 400);
 
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function destroy($id)
-    {
-        //
+        }
     }
 }
